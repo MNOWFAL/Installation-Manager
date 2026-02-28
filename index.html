@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Installations - DS Installation Manager</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        h1 {
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        
+        .nav-links {
+            position: absolute;
+            right: 0;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-link {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            font-size: 0.9rem;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .nav-link.active {
+            background: white;
+            color: #667eea;
+        }
+        
+        .stats-bar {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 120px;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+        }
+        
+        .stat-label {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 3px;
+        }
+        
+        .stat-total {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .stat-pending {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .stat-scheduled {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .stat-completed {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .controls-container {
+            background: white;
+            padding: 20px 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+        }
+        
+        .filter-group select, .search-box {
+            padding: 8px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            min-width: 140px;
+        }
+        
+        .search-box {
+            cursor: text;
+        }
+        
+        .filter-group select:focus, .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .view-mode-toggle {
+            display: flex;
+            background: #f0f0f0;
+            border-radius: 8px;
+            padding: 4px;
+            gap: 4px;
+        }
+        
+        .view-mode-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: #666;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+        }
+        
+        .view-mode-btn.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+        }
+        
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #f57c00;
+        }
+        
+        /* Dropdown Styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 160px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-radius: 10px;
+            z-index: 100;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .dropdown-content.show {
+            display: block;
+        }
+        
+        .dropdown-item {
+            color: #333;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+            color: #667eea;
+        }
+        
+        .dropdown-item:first-child {
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .dropdown-item:last-child {
+            border-radius: 0 0 10px 10px;
+        }
+        
+        .dropdown-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .dropdown-btn::after {
+            content: '▼';
+            font-size: 0.7rem;
+            margin-left: 5px;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .table-info {
+            background: #f8f9fa;
+            padding: 15px 25px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .table-info-text {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .table-info-text strong {
+            color: #667eea;
+        }
+        
+        .show-more-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+        
+        .show-more-btn:hover {
+            background: #5a6fd6;
+            transform: translateY(-1px);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        th {
+            padding: 16px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        
+        td {
+            padding: 14px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .client-cell {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .details-cell {
+            max-width: 200px;
+            line-height: 1.4;
+        }
+        
+        .location-cell {
+            color: #666;
+            max-width: 150px;
+        }
+        
+        .date-cell {
+            font-weight: 600;
+            white-space: nowrap;
+            font-size: 0.85rem;
+        }
+        
+        .pic-cell {
+            color: #555;
+            font-size: 0.85rem;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-scheduled {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-completed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .date-overdue {
+            color: #f44336;
+        }
+        
+        .date-upcoming {
+            color: #ff9800;
+        }
+        
+        .date-future {
+            color: #4CAF50;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        .empty-state h3 {
+            color: #666;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .empty-state p {
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 550px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            color: #333;
+            font-size: 1.3rem;
+        }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #f44336;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 5px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .delete-btn:hover {
+            background: #ffebee;
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 70px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-footer .btn {
+            flex: 1;
+        }
+        
+        .import-preview {
+            max-height: 150px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .file-input-label {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #ff9800;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .file-input-label:hover {
+            background: #f57c00;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .nav-links {
+                position: static;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .stats-bar {
+                gap: 10px;
+            }
+            
+            .stat-card {
+                padding: 12px 20px;
+                min-width: 100px;
+            }
+            
+            .stat-number {
+                font-size: 1.5rem;
+            }
+            
+            .controls-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-group {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .filter-group select, .search-box {
+                width: 100%;
+            }
+            
+            .view-mode-toggle {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+                font-size: 0.8rem;
+            }
+            
+            .details-cell {
+                max-width: 120px;
+            }
+            
+            .dropdown-content {
+                right: 0;
+                left: auto;
+            }
+            
+            .table-info {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <h1>DS Installation Manager</h1>
+            <div class="nav-links">
+                <a href="add.html" class="nav-link">Add New</a>
+            </div>
+        </div>
+        
+        <div class="stats-bar">
+            <div class="stat-card stat-total">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-card stat-pending">
+                <div class="stat-number" id="pendingCount">0</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card stat-scheduled">
+                <div class="stat-number" id="scheduledCount">0</div>
+                <div class="stat-label">Scheduled</div>
+            </div>
+            <div class="stat-card stat-completed">
+                <div class="stat-number" id="completedCount">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+        
+        <div class="controls-container">
+            <div class="filter-group">
+                <label>Filter:</label>
+                <select id="filterStatus" onchange="renderTable()">
+                    <option value="All">All Status</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Completed">Completed</option>
+                </select>
+                <input type="text" class="search-box" id="searchBox" placeholder="Search client..." onkeyup="renderTable()">
+            </div>
+            
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <div class="view-mode-toggle">
+                    <button class="view-mode-btn active" id="btnLatest" onclick="setViewMode('latest')">Latest 10</button>
+                    <button class="view-mode-btn" id="btnAll" onclick="setViewMode('all')">Show All</button>
+                </div>
+                
+                <div class="file-input-wrapper">
+                    <input type="file" id="importFile" accept=".json" onchange="importJSON(this)">
+                    <label for="importFile" class="file-input-label">📥 Import</label>
+                </div>
+                
+                <div class="dropdown">
+                    <button class="btn dropdown-btn" onclick="toggleDropdown()">📤 Export</button>
+                    <div class="dropdown-content" id="exportDropdown">
+                        <button class="dropdown-item" onclick="exportJSON()">📄 Export as JSON</button>
+                        <button class="dropdown-item" onclick="exportCSV()">📊 Export as CSV</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <div class="table-info" id="tableInfo">
+                <span class="table-info-text">Showing <strong id="showingCount">0</strong> of <strong id="totalEntries">0</strong> entries (sorted by Installation Date - Oldest First)</span>
+                <button class="show-more-btn" id="showMoreBtn" onclick="setViewMode('all')" style="display: none;">Show All Entries</button>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Details</th>
+                        <th>Location</th>
+                        <th>Requested Date</th>
+                        <th>Installation Date</th>
+                        <th>PIC</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            <h3>No Installations Found</h3>
+                            <p>Start by adding your first installation on the Add New page.</p>
+                            <a href="add.html" class="btn btn-primary">Add Installation</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Edit Modal with Delete Inside -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Installation</h3>
+                <button class="delete-btn" onclick="deleteCurrentInstallation()" title="Delete this installation">
+                    🗑️
+                </button>
+            </div>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label>Client Name</label>
+                    <input type="text" id="editClient" required>
+                </div>
+                <div class="form-group">
+                    <label>Installation Details</label>
+                    <textarea id="editDetails" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="editLocation" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Requested Date</label>
+                        <input type="date" id="editRequestedDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Installation Date</label>
+                        <input type="date" id="editInstallationDate" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>PIC (Person In Charge)</label>
+                    <input type="text" id="editPic" required>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="editStatus">
+                        <option value="Pending">Pending</option>
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Import Confirmation Modal -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Import</h3>
+            </div>
+            <div class="modal-body">
+                <p>You are about to import <strong id="importCount">0</strong> installation(s).</p>
+                <div class="import-preview" id="importPreview"></div>
+                <p><strong>Options:</strong></p>
+                <label style="display: flex; align-items: center; gap: 8px; margin: 10px 0; cursor: pointer;">
+                    <input type="radio" name="importMode" value="merge" checked>
+                    <span>Merge with existing data (recommended)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; margin: 10px 0; cursor: pointer;">
+                    <input type="radio" name="importMode" value="replace">
+                    <span>Replace all existing data</span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="confirmImport()">Import</button>
+                <button class="btn btn-secondary" onclick="cancelImport()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let editingId = null;
+        let pendingImportData = null;
+        let viewMode = 'latest'; // 'latest' or 'all'
+        const LATEST_COUNT = 10;
+        
+        function getInstallations() {
+            return JSON.parse(localStorage.getItem('installations')) || [];
+        }
+        
+        function saveInstallations(data) {
+            localStorage.setItem('installations', JSON.stringify(data));
+        }
+        
+        function setViewMode(mode) {
+            viewMode = mode;
+            
+            // Update toggle buttons
+            document.getElementById('btnLatest').classList.toggle('active', mode === 'latest');
+            document.getElementById('btnAll').classList.toggle('active', mode === 'all');
+            
+            renderTable();
+        }
+        
+        function updateStats() {
+            const installations = getInstallations();
+            document.getElementById('totalCount').textContent = installations.length;
+            document.getElementById('pendingCount').textContent = installations.filter(i => i.status === 'Pending').length;
+            document.getElementById('scheduledCount').textContent = installations.filter(i => i.status === 'Scheduled').length;
+            document.getElementById('completedCount').textContent = installations.filter(i => i.status === 'Completed').length;
+        }
+        
+        function getDateClass(dateStr) {
+            if (!dateStr) return '';
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const date = new Date(dateStr);
+            const diffTime = date - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0) return 'date-overdue';
+            if (diffDays <= 3) return 'date-upcoming';
+            return 'date-future';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateStr).toLocaleDateString('en-US', options);
+        }
+        
+        function renderTable() {
+            let installations = getInstallations();
+            const filter = document.getElementById('filterStatus').value;
+            const search = document.getElementById('searchBox').value.toLowerCase();
+            const totalEntries = installations.length;
+            
+            // Apply filters first
+            if (filter !== 'All') {
+                installations = installations.filter(i => i.status === filter);
+            }
+            
+            if (search) {
+                installations = installations.filter(i => 
+                    i.client.toLowerCase().includes(search) ||
+                    (i.pic && i.pic.toLowerCase().includes(search)) ||
+                    i.details.toLowerCase().includes(search) ||
+                    i.location.toLowerCase().includes(search)
+                );
+            }
+            
+            // Sort by installation date (OLDEST FIRST - ascending order)
+            installations.sort((a, b) => {
+                const dateA = new Date(a.installationDate || a.date || 0);
+                const dateB = new Date(b.installationDate || b.date || 0);
+                return dateA - dateB; // Oldest first (ascending)
+            });
+            
+            // Apply view mode limit - show LAST 10 entries (which are the newest 10 when sorted oldest first)
+            // Actually, we want to show the oldest 10 entries first
+            let displayInstallations = installations;
+            let isLimited = false;
+            
+            if (viewMode === 'latest' && installations.length > LATEST_COUNT) {
+                // When showing oldest first, "Latest 10" means the 10 oldest entries
+                displayInstallations = installations.slice(0, LATEST_COUNT);
+                isLimited = true;
+            }
+            
+            // Update info bar
+            document.getElementById('showingCount').textContent = displayInstallations.length;
+            document.getElementById('totalEntries').textContent = totalEntries;
+            
+            const showMoreBtn = document.getElementById('showMoreBtn');
+            if (isLimited && viewMode === 'latest') {
+                showMoreBtn.style.display = 'inline-block';
+                showMoreBtn.textContent = `Show All ${installations.length} Entries`;
+            } else {
+                showMoreBtn.style.display = 'none';
+            }
+            
+            const tbody = document.getElementById('tableBody');
+            
+            if (installations.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            <h3>No Installations Found</h3>
+                            <p>${filter !== 'All' || search ? 'Try adjusting your filters.' : 'Start by adding your first installation.'}</p>
+                            ${!search && filter === 'All' ? '<a href="add.html" class="btn btn-primary">Add Installation</a>' : ''}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = displayInstallations.map(inst => `
+                <tr>
+                    <td class="client-cell">${escapeHtml(inst.client)}</td>
+                    <td class="details-cell">${escapeHtml(inst.details)}</td>
+                    <td class="location-cell">${escapeHtml(inst.location)}</td>
+                    <td class="date-cell">${formatDate(inst.requestedDate)}</td>
+                    <td class="date-cell ${getDateClass(inst.installationDate || inst.date)}">${formatDate(inst.installationDate || inst.date)}</td>
+                    <td class="pic-cell">${escapeHtml(inst.pic || 'N/A')}</td>
+                    <td><span class="status-badge status-${inst.status.toLowerCase()}">${inst.status}</span></td>
+                    <td class="actions">
+                        <button class="btn btn-success" onclick="editInstallation(${inst.id})" style="padding: 6px 14px; font-size: 0.8rem;">Edit</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function editInstallation(id) {
+            const installations = getInstallations();
+            const inst = installations.find(i => i.id === id);
+            if (!inst) return;
+            
+            editingId = id;
+            document.getElementById('editId').value = id;
+            document.getElementById('editClient').value = inst.client;
+            document.getElementById('editDetails').value = inst.details;
+            document.getElementById('editLocation').value = inst.location;
+            document.getElementById('editRequestedDate').value = inst.requestedDate || '';
+            document.getElementById('editInstallationDate').value = inst.installationDate || inst.date || '';
+            document.getElementById('editPic').value = inst.pic || '';
+            document.getElementById('editStatus').value = inst.status;
+            
+            document.getElementById('editModal').style.display = 'flex';
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            editingId = null;
+        }
+        
+        function deleteCurrentInstallation() {
+            if (!editingId) return;
+            
+            if (confirm('Are you sure you want to delete this installation?')) {
+                let installations = getInstallations();
+                installations = installations.filter(i => i.id !== editingId);
+                saveInstallations(installations);
+                updateStats();
+                renderTable();
+                closeEditModal();
+                showNotification('🗑️ Installation deleted', 'success');
+            }
+        }
+        
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const installations = getInstallations();
+            const index = installations.findIndex(i => i.id === editingId);
+            
+            if (index !== -1) {
+                installations[index] = {
+                    ...installations[index],
+                    client: document.getElementById('editClient').value,
+                    details: document.getElementById('editDetails').value,
+                    location: document.getElementById('editLocation').value,
+                    requestedDate: document.getElementById('editRequestedDate').value,
+                    installationDate: document.getElementById('editInstallationDate').value,
+                    pic: document.getElementById('editPic').value,
+                    status: document.getElementById('editStatus').value
+                };
+                
+                saveInstallations(installations);
+                updateStats();
+                renderTable();
+                closeEditModal();
+                showNotification('✅ Installation updated successfully!', 'success');
+            }
+        });
+        
+        // Dropdown functions
+        function toggleDropdown() {
+            document.getElementById('exportDropdown').classList.toggle('show');
+        }
+        
+        window.onclick = function(event) {
+            if (!event.target.matches('.dropdown-btn')) {
+                const dropdowns = document.getElementsByClassName('dropdown-content');
+                for (let i = 0; i < dropdowns.length; i++) {
+                    const openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+        
+        function exportJSON() {
+            const installations = getInstallations();
+            if (installations.length === 0) {
+                alert('No data to export. Add some installations first.');
+                return;
+            }
+            
+            const data = {
+                version: '2.0',
+                exportDate: new Date().toISOString(),
+                totalRecords: installations.length,
+                installations: installations
+            };
+            
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `installation_data_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showNotification('✅ JSON exported successfully!', 'success');
+            toggleDropdown();
+        }
+        
+        function exportCSV() {
+            const installations = getInstallations();
+            if (installations.length === 0) {
+                alert('No data to export');
+                return;
+            }
+            
+            const csv = [
+                ['Client', 'Details', 'Location', 'Requested Date', 'Installation Date', 'PIC', 'Status'],
+                ...installations.map(i => [
+                    i.client, 
+                    i.details, 
+                    i.location,
+                    i.requestedDate || 'N/A',
+                    i.installationDate || i.date || 'N/A',
+                    i.pic || 'N/A', 
+                    i.status
+                ])
+            ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `installations_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            
+            showNotification('✅ CSV exported successfully!', 'success');
+            toggleDropdown();
+        }
+        
+        function importJSON(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (!data.installations || !Array.isArray(data.installations)) {
+                        throw new Error('Invalid file format');
+                    }
+                    
+                    pendingImportData = data.installations;
+                    
+                    document.getElementById('importCount').textContent = data.installations.length;
+                    document.getElementById('importPreview').innerHTML = data.installations.slice(0, 5).map(inst => 
+                        `• ${inst.client} - ${inst.installationDate || inst.date} (${inst.status})`
+                    ).join('<br>') + (data.installations.length > 5 ? '<br>... and ' + (data.installations.length - 5) + ' more' : '');
+                    
+                    document.getElementById('importModal').style.display = 'flex';
+                    
+                } catch (error) {
+                    alert('Error reading file: ' + error.message);
+                }
+                
+                input.value = '';
+            };
+            reader.readAsText(file);
+        }
+        
+        function confirmImport() {
+            if (!pendingImportData) return;
+            
+            const mode = document.querySelector('input[name="importMode"]:checked').value;
+            let installations = getInstallations();
+            const originalCount = installations.length;
+            
+            if (mode === 'replace') {
+                installations = pendingImportData;
+            } else {
+                const existingIds = new Set(installations.map(i => i.id));
+                const newItems = pendingImportData.filter(i => !existingIds.has(i.id));
+                installations = [...installations, ...newItems];
+            }
+            
+            saveInstallations(installations);
+            pendingImportData = null;
+            closeImportModal();
+            
+            updateStats();
+            renderTable();
+            
+            const addedCount = installations.length - originalCount;
+            showNotification(`✅ Import complete! ${mode === 'replace' ? 'Data replaced' : addedCount + ' new items added'}.`, 'success');
+        }
+        
+        function cancelImport() {
+            pendingImportData = null;
+            closeImportModal();
+        }
+        
+        function closeImportModal() {
+            document.getElementById('importModal').style.display = 'none';
+        }
+        
+        function showNotification(message, type) {
+            const notif = document.createElement('div');
+            notif.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#4CAF50' : '#f44336'};
+                color: white;
+                padding: 14px 20px;
+                border-radius: 10px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+                z-index: 10000;
+                font-weight: 500;
+                max-width: 350px;
+                font-size: 0.9rem;
+                animation: slideInRight 0.3s ease;
+            `;
+            notif.textContent = message;
+            document.body.appendChild(notif);
+            
+            setTimeout(() => {
+                notif.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => notif.remove(), 300);
+            }, 3500);
+        }
+        
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) closeEditModal();
+        });
+        
+        document.getElementById('importModal').addEventListener('click', function(e) {
+            if (e.target === this) cancelImport();
+        });
+        
+        // Initialize
+        updateStats();
+        renderTable();
+        
+        // Refresh every 30 seconds
+        setInterval(() => {
+            updateStats();
+            renderTable();
+        }, 30000);
+
+ <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, deleteDoc, updateDoc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 🔥 REPLACE THIS WITH YOUR FIREBASE CONFIG FROM STEP 1
+        const firebaseConfig = {
+  apiKey: "AIzaSyDsW-6OfPDtbFal42zckbQVszcQm3QSXuY",
+  authDomain: "installationmanager-b5b26.firebaseapp.com",
+  projectId: "installationmanager-b5b26",
+  storageBucket: "installationmanager-b5b26.firebasestorage.app",
+  messagingSenderId: "692371087249",
+  appId: "1:692371087249:web:120507fc2ac50506f90430"
+};
+
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const installationsRef = collection(db, "installations");
+        
+        let allInstallations = [];
+        let editingId = null;
+
+        // Real-time listener
+        const q = query(installationsRef, orderBy("date", "asc"));
+        onSnapshot(q, (snapshot) => {
+            allInstallations = [];
+            snapshot.forEach((doc) => {
+                allInstallations.push({ id: doc.id, ...doc.data() });
+            });
+            updateStats();
+            renderTable();
+        });
+
+        function updateStats() {
+            document.getElementById('totalCount').textContent = allInstallations.length;
+            document.getElementById('pendingCount').textContent = allInstallations.filter(i => i.status === 'Pending').length;
+            document.getElementById('scheduledCount').textContent = allInstallations.filter(i => i.status === 'Scheduled').length;
+            document.getElementById('completedCount').textContent = allInstallations.filter(i => i.status === 'Completed').length;
+        }
+
+        function getDateClass(dateStr) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const date = new Date(dateStr);
+            const diffTime = date - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0) return 'date-overdue';
+            if (diffDays <= 3) return 'date-upcoming';
+            return 'date-future';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateStr) {
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateStr).toLocaleDateString('en-US', options);
+        }
+
+        window.renderTable = function() {
+            let installations = [...allInstallations];
+            const filter = document.getElementById('filterStatus').value;
+            const search = document.getElementById('searchBox').value.toLowerCase();
+            
+            if (filter !== 'All') {
+                installations = installations.filter(i => i.status === filter);
+            }
+            
+            if (search) {
+                installations = installations.filter(i => 
+                    i.client.toLowerCase().includes(search) ||
+                    i.details.toLowerCase().includes(search) ||
+                    i.location.toLowerCase().includes(search)
+                );
+            }
+            
+            const tbody = document.getElementById('tableBody');
+            
+            if (installations.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            <h3>No Installations Found</h3>
+                            <p>${filter !== 'All' || search ? 'Try adjusting your filters.' : 'Start by adding your first installation.'}</p>
+                            ${!search && filter === 'All' ? '<a href="add.html" class="btn btn-primary">Add Installation</a>' : ''}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = installations.map(inst => `
+                <tr>
+                    <td class="client-cell">${escapeHtml(inst.client)}</td>
+                    <td class="details-cell">${escapeHtml(inst.details)}</td>
+                    <td class="location-cell">${escapeHtml(inst.location)}</td>
+                    <td class="date-cell ${getDateClass(inst.date)}">${formatDate(inst.date)}</td>
+                    <td><span class="status-badge status-${inst.status.toLowerCase()}">${inst.status}</span></td>
+                    <td class="actions">
+                        <button class="btn btn-success" onclick="editInstallation('${inst.id}')">Edit</button>
+                        <button class="btn btn-danger" onclick="deleteInstallation('${inst.id}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        };
+
+        window.editInstallation = function(id) {
+            const inst = allInstallations.find(i => i.id === id);
+            if (!inst) return;
+            
+            editingId = id;
+            document.getElementById('editId').value = id;
+            document.getElementById('editClient').value = inst.client;
+            document.getElementById('editDetails').value = inst.details;
+            document.getElementById('editLocation').value = inst.location;
+            document.getElementById('editDate').value = inst.date;
+            document.getElementById('editStatus').value = inst.status;
+            
+            document.getElementById('editModal').style.display = 'flex';
+        };
+
+        window.closeModal = function() {
+            document.getElementById('editModal').style.display = 'none';
+            editingId = null;
+        };
+
+        document.getElementById('editForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const docRef = doc(db, "installations", editingId);
+            await updateDoc(docRef, {
+                client: document.getElementById('editClient').value,
+                details: document.getElementById('editDetails').value,
+                location: document.getElementById('editLocation').value,
+                date: document.getElementById('editDate').value,
+                status: document.getElementById('editStatus').value,
+                updatedAt: new Date().toISOString()
+            });
+            
+            closeModal();
+        });
+
+        window.deleteInstallation = async function(id) {
+            if (confirm('Are you sure you want to delete this installation?')) {
+                await deleteDoc(doc(db, "installations", id));
+            }
+        };
+
+        window.clearAll = async function() {
+            if (confirm('WARNING: This will delete ALL installations. Are you sure?')) {
+                const batch = writeBatch(db);
+                allInstallations.forEach((inst) => {
+                    batch.delete(doc(db, "installations", inst.id));
+                });
+                await batch.commit();
+            }
+        };
+
+        window.exportCSV = function() {
+            if (allInstallations.length === 0) {
+                alert('No data to export');
+                return;
+            }
+            
+            const csv = [
+                ['Client', 'Details', 'Location', 'Date', 'Status'],
+                ...allInstallations.map(i => [i.client, i.details, i.location, i.date, i.status])
+            ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `installations_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        };
+
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+</body>
+</html>
