@@ -76,7 +76,7 @@
         
         .stats-bar {
             display: flex;
-            gap: 15px;
+            gap: clamp(10px, 2vw, 30px);
             justify-content: center;
             margin-bottom: 30px;
             flex-wrap: wrap;
@@ -134,7 +134,7 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: clamp(10px, 2vw, 25px);
         }
         
         .filter-group {
@@ -165,32 +165,6 @@
         .filter-group select:focus, .search-box:focus {
             outline: none;
             border-color: #667eea;
-        }
-        
-        .view-mode-toggle {
-            display: flex;
-            background: #f0f0f0;
-            border-radius: 8px;
-            padding: 4px;
-            gap: 4px;
-        }
-        
-        .view-mode-btn {
-            padding: 8px 16px;
-            border: none;
-            background: transparent;
-            color: #666;
-            font-weight: 600;
-            cursor: pointer;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            font-size: 0.85rem;
-        }
-        
-        .view-mode-btn.active {
-            background: white;
-            color: #667eea;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .btn {
@@ -241,6 +215,13 @@
             background: #f57c00;
         }
         
+        .action-buttons {
+            display: flex;
+            gap: clamp(8px, 1.5vw, 20px);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
         .table-container {
             background: white;
             border-radius: 20px;
@@ -268,23 +249,6 @@
             color: #667eea;
         }
         
-        .show-more-btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.85rem;
-            transition: all 0.3s ease;
-        }
-        
-        .show-more-btn:hover {
-            background: #5a6fd6;
-            transform: translateY(-1px);
-        }
-        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -305,6 +269,11 @@
             white-space: nowrap;
         }
         
+        /* Remove hover effect from table header */
+        thead tr:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
         td {
             padding: 14px 12px;
             border-bottom: 1px solid #f0f0f0;
@@ -314,6 +283,11 @@
         
         tr:hover {
             background: #f8f9fa;
+        }
+        
+        /* Exclude header row from hover effect */
+        thead tr {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
         
         .client-cell {
@@ -585,6 +559,7 @@
             .controls-container {
                 flex-direction: column;
                 align-items: stretch;
+                gap: 15px;
             }
             
             .filter-group {
@@ -596,9 +571,10 @@
                 width: 100%;
             }
             
-            .view-mode-toggle {
+            .action-buttons {
                 width: 100%;
                 justify-content: center;
+                gap: 10px;
             }
             
             th, td {
@@ -608,6 +584,34 @@
             
             .details-cell {
                 max-width: 120px;
+            }
+        }
+        
+        @media (min-width: 1200px) {
+            .stats-bar {
+                gap: 30px;
+            }
+            
+            .controls-container {
+                gap: 25px;
+            }
+            
+            .action-buttons {
+                gap: 20px;
+            }
+        }
+        
+        @media (min-width: 1600px) {
+            .stats-bar {
+                gap: 40px;
+            }
+            
+            .controls-container {
+                gap: 35px;
+            }
+            
+            .action-buttons {
+                gap: 25px;
             }
         }
     </style>
@@ -652,12 +656,7 @@
                 <input type="text" class="search-box" id="searchBox" placeholder="Search client..." onkeyup="renderTable()">
             </div>
             
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <div class="view-mode-toggle">
-                    <button class="view-mode-btn active" id="btnLatest" onclick="setViewMode('latest')">Latest 10</button>
-                    <button class="view-mode-btn" id="btnAll" onclick="setViewMode('all')">Show All</button>
-                </div>
-                
+            <div class="action-buttons">
                 <div class="file-input-wrapper">
                     <input type="file" id="importFile" accept=".json" onchange="importJSON(this)">
                     <label for="importFile" class="file-input-label">📥 Import</label>
@@ -669,8 +668,7 @@
         
         <div class="table-container">
             <div class="table-info" id="tableInfo">
-                <span class="table-info-text">Showing <strong id="showingCount">0</strong> of <strong id="totalEntries">0</strong> entries (sorted by Installation Date - Nearest First)</span>
-                <button class="show-more-btn" id="showMoreBtn" onclick="setViewMode('all')" style="display: none;">Show All Entries</button>
+                <span class="table-info-text">Showing <strong id="showingCount">0</strong> entries</span>
             </div>
             
             <table>
@@ -798,9 +796,7 @@
 
         let editingId = null;
         let pendingImportData = null;
-        let viewMode = 'latest'; // 'latest' or 'all'
         let currentFilteredData = []; // Store filtered data for export
-        const LATEST_COUNT = 10;
         
         // Status priority order: Scheduled (1), Pending (2), Completed (3)
         const statusPriority = {
@@ -816,16 +812,6 @@
                 installations.push({ id: doc.id, ...doc.data() });
             });
             return installations;
-        }
-        
-        function setViewMode(mode) {
-            viewMode = mode;
-            
-            // Update toggle buttons
-            document.getElementById('btnLatest').classList.toggle('active', mode === 'latest');
-            document.getElementById('btnAll').classList.toggle('active', mode === 'all');
-            
-            renderTable();
         }
         
         async function updateStats() {
@@ -879,7 +865,6 @@
             let installations = await getInstallations();
             const filter = document.getElementById('filterStatus').value;
             const search = document.getElementById('searchBox').value.toLowerCase();
-            const totalEntries = installations.length;
             
             // Apply filters first
             if (filter !== 'All') {
@@ -920,26 +905,8 @@
             // Store filtered data for export
             currentFilteredData = [...installations];
             
-            // Apply view mode limit
-            let displayInstallations = installations;
-            let isLimited = false;
-            
-            if (viewMode === 'latest' && installations.length > LATEST_COUNT) {
-                displayInstallations = installations.slice(0, LATEST_COUNT);
-                isLimited = true;
-            }
-            
             // Update info bar
-            document.getElementById('showingCount').textContent = displayInstallations.length;
-            document.getElementById('totalEntries').textContent = totalEntries;
-            
-            const showMoreBtn = document.getElementById('showMoreBtn');
-            if (isLimited && viewMode === 'latest') {
-                showMoreBtn.style.display = 'inline-block';
-                showMoreBtn.textContent = `Show All ${installations.length} Entries`;
-            } else {
-                showMoreBtn.style.display = 'none';
-            }
+            document.getElementById('showingCount').textContent = installations.length;
             
             const tbody = document.getElementById('tableBody');
             
@@ -959,7 +926,7 @@
                 return;
             }
             
-            tbody.innerHTML = displayInstallations.map(inst => `
+            tbody.innerHTML = installations.map(inst => `
                 <tr>
                     <td class="client-cell">${escapeHtml(inst.client)}</td>
                     <td class="details-cell">${escapeHtml(inst.details)}</td>
