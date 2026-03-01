@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Installations - DS Installation Manager</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
@@ -235,70 +239,6 @@
         
         .btn-warning:hover {
             background: #f57c00;
-        }
-        
-        /* Dropdown Styles */
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-        
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: white;
-            min-width: 160px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            border-radius: 10px;
-            z-index: 100;
-            margin-top: 5px;
-            overflow: hidden;
-        }
-        
-        .dropdown-content.show {
-            display: block;
-        }
-        
-        .dropdown-item {
-            color: #333;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 0.9rem;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            font-family: inherit;
-        }
-        
-        .dropdown-item:hover {
-            background-color: #f8f9fa;
-            color: #667eea;
-        }
-        
-        .dropdown-item:first-child {
-            border-radius: 10px 10px 0 0;
-        }
-        
-        .dropdown-item:last-child {
-            border-radius: 0 0 10px 10px;
-        }
-        
-        .dropdown-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .dropdown-btn::after {
-            content: '▼';
-            font-size: 0.7rem;
-            margin-left: 5px;
         }
         
         .table-container {
@@ -669,16 +609,6 @@
             .details-cell {
                 max-width: 120px;
             }
-            
-            .dropdown-content {
-                right: 0;
-                left: auto;
-            }
-            
-            .table-info {
-                flex-direction: column;
-                text-align: center;
-            }
         }
     </style>
 </head>
@@ -715,8 +645,8 @@
                 <label>Filter:</label>
                 <select id="filterStatus" onchange="renderTable()">
                     <option value="All">All Status</option>
-                    <option value="Pending">Pending</option>
                     <option value="Scheduled">Scheduled</option>
+                    <option value="Pending">Pending</option>
                     <option value="Completed">Completed</option>
                 </select>
                 <input type="text" class="search-box" id="searchBox" placeholder="Search client..." onkeyup="renderTable()">
@@ -733,19 +663,13 @@
                     <label for="importFile" class="file-input-label">📥 Import</label>
                 </div>
                 
-                <div class="dropdown">
-                    <button class="btn dropdown-btn" onclick="toggleDropdown()">📤 Export</button>
-                    <div class="dropdown-content" id="exportDropdown">
-                        <button class="dropdown-item" onclick="exportJSON()">📄 Export as JSON</button>
-                        <button class="dropdown-item" onclick="exportCSV()">📊 Export as CSV</button>
-                    </div>
-                </div>
+                <button class="btn btn-success" onclick="exportCSV()">📤 Export CSV</button>
             </div>
         </div>
         
         <div class="table-container">
             <div class="table-info" id="tableInfo">
-                <span class="table-info-text">Showing <strong id="showingCount">0</strong> of <strong id="totalEntries">0</strong> entries (sorted by Installation Date - Oldest First)</span>
+                <span class="table-info-text">Showing <strong id="showingCount">0</strong> of <strong id="totalEntries">0</strong> entries (sorted by Installation Date - Nearest First)</span>
                 <button class="show-more-btn" id="showMoreBtn" onclick="setViewMode('all')" style="display: none;">Show All Entries</button>
             </div>
             
@@ -808,7 +732,7 @@
                     </div>
                     <div class="form-group">
                         <label>Installation Date</label>
-                        <input type="date" id="editInstallationDate" required>
+                        <input type="date" id="editInstallationDate">
                     </div>
                 </div>
                 <div class="form-group">
@@ -858,17 +782,40 @@
     </div>
 
     <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDsW-6OfPDtbFal42zckbQVszcQm3QSXuY",
+            authDomain: "installationmanager-b5b26.firebaseapp.com",
+            projectId: "installationmanager-b5b26",
+            storageBucket: "installationmanager-b5b26.firebasestorage.app",
+            messagingSenderId: "692371087249",
+            appId: "1:692371087249:web:120507fc2ac50506f90430"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         let editingId = null;
         let pendingImportData = null;
         let viewMode = 'latest'; // 'latest' or 'all'
+        let currentFilteredData = []; // Store filtered data for export
         const LATEST_COUNT = 10;
         
-        function getInstallations() {
-            return JSON.parse(localStorage.getItem('installations')) || [];
-        }
+        // Status priority order: Scheduled (1), Pending (2), Completed (3)
+        const statusPriority = {
+            'Scheduled': 1,
+            'Pending': 2,
+            'Completed': 3
+        };
         
-        function saveInstallations(data) {
-            localStorage.setItem('installations', JSON.stringify(data));
+        async function getInstallations() {
+            const snapshot = await db.collection('installations').get();
+            const installations = [];
+            snapshot.forEach(doc => {
+                installations.push({ id: doc.id, ...doc.data() });
+            });
+            return installations;
         }
         
         function setViewMode(mode) {
@@ -881,8 +828,8 @@
             renderTable();
         }
         
-        function updateStats() {
-            const installations = getInstallations();
+        async function updateStats() {
+            const installations = await getInstallations();
             document.getElementById('totalCount').textContent = installations.length;
             document.getElementById('pendingCount').textContent = installations.filter(i => i.status === 'Pending').length;
             document.getElementById('scheduledCount').textContent = installations.filter(i => i.status === 'Scheduled').length;
@@ -903,6 +850,7 @@
         }
         
         function escapeHtml(text) {
+            if (!text) return 'N/A';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
@@ -910,12 +858,25 @@
         
         function formatDate(dateStr) {
             if (!dateStr) return 'N/A';
+            // Handle Firestore timestamp
+            if (dateStr.toDate) {
+                dateStr = dateStr.toDate();
+            }
             const options = { year: 'numeric', month: 'short', day: 'numeric' };
             return new Date(dateStr).toLocaleDateString('en-US', options);
         }
         
-        function renderTable() {
-            let installations = getInstallations();
+        function formatDateForInput(dateStr) {
+            if (!dateStr) return '';
+            if (dateStr.toDate) {
+                dateStr = dateStr.toDate();
+            }
+            const date = new Date(dateStr);
+            return date.toISOString().split('T')[0];
+        }
+        
+        async function renderTable() {
+            let installations = await getInstallations();
             const filter = document.getElementById('filterStatus').value;
             const search = document.getElementById('searchBox').value.toLowerCase();
             const totalEntries = installations.length;
@@ -934,20 +895,36 @@
                 );
             }
             
-            // Sort by installation date (OLDEST FIRST - ascending order)
+            // Sort by status priority first, then by installation date (nearest first)
             installations.sort((a, b) => {
-                const dateA = new Date(a.installationDate || a.date || 0);
-                const dateB = new Date(b.installationDate || b.date || 0);
-                return dateA - dateB; // Oldest first (ascending)
+                // First sort by status priority
+                const priorityA = statusPriority[a.status] || 4;
+                const priorityB = statusPriority[b.status] || 4;
+                
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB;
+                }
+                
+                // Then sort by installation date (nearest future date first)
+                const dateA = a.installationDate ? new Date(a.installationDate) : new Date('9999-12-31');
+                const dateB = b.installationDate ? new Date(b.installationDate) : new Date('9999-12-31');
+                
+                // Put null dates at the end
+                if (!a.installationDate && !b.installationDate) return 0;
+                if (!a.installationDate) return 1;
+                if (!b.installationDate) return -1;
+                
+                return dateA - dateB; // Nearest first (ascending)
             });
             
-            // Apply view mode limit - show LAST 10 entries (which are the newest 10 when sorted oldest first)
-            // Actually, we want to show the oldest 10 entries first
+            // Store filtered data for export
+            currentFilteredData = [...installations];
+            
+            // Apply view mode limit
             let displayInstallations = installations;
             let isLimited = false;
             
             if (viewMode === 'latest' && installations.length > LATEST_COUNT) {
-                // When showing oldest first, "Latest 10" means the 10 oldest entries
                 displayInstallations = installations.slice(0, LATEST_COUNT);
                 isLimited = true;
             }
@@ -988,28 +965,28 @@
                     <td class="details-cell">${escapeHtml(inst.details)}</td>
                     <td class="location-cell">${escapeHtml(inst.location)}</td>
                     <td class="date-cell">${formatDate(inst.requestedDate)}</td>
-                    <td class="date-cell ${getDateClass(inst.installationDate || inst.date)}">${formatDate(inst.installationDate || inst.date)}</td>
+                    <td class="date-cell ${getDateClass(inst.installationDate)}">${formatDate(inst.installationDate)}</td>
                     <td class="pic-cell">${escapeHtml(inst.pic || 'N/A')}</td>
                     <td><span class="status-badge status-${inst.status.toLowerCase()}">${inst.status}</span></td>
                     <td class="actions">
-                        <button class="btn btn-success" onclick="editInstallation(${inst.id})" style="padding: 6px 14px; font-size: 0.8rem;">Edit</button>
+                        <button class="btn btn-success" onclick="editInstallation('${inst.id}')" style="padding: 6px 14px; font-size: 0.8rem;">Edit</button>
                     </td>
                 </tr>
             `).join('');
         }
         
-        function editInstallation(id) {
-            const installations = getInstallations();
-            const inst = installations.find(i => i.id === id);
-            if (!inst) return;
+        async function editInstallation(id) {
+            const doc = await db.collection('installations').doc(id).get();
+            if (!doc.exists) return;
             
+            const inst = doc.data();
             editingId = id;
             document.getElementById('editId').value = id;
             document.getElementById('editClient').value = inst.client;
             document.getElementById('editDetails').value = inst.details;
             document.getElementById('editLocation').value = inst.location;
-            document.getElementById('editRequestedDate').value = inst.requestedDate || '';
-            document.getElementById('editInstallationDate').value = inst.installationDate || inst.date || '';
+            document.getElementById('editRequestedDate').value = formatDateForInput(inst.requestedDate);
+            document.getElementById('editInstallationDate').value = formatDateForInput(inst.installationDate) || '';
             document.getElementById('editPic').value = inst.pic || '';
             document.getElementById('editStatus').value = inst.status;
             
@@ -1021,95 +998,51 @@
             editingId = null;
         }
         
-        function deleteCurrentInstallation() {
+        async function deleteCurrentInstallation() {
             if (!editingId) return;
             
             if (confirm('Are you sure you want to delete this installation?')) {
-                let installations = getInstallations();
-                installations = installations.filter(i => i.id !== editingId);
-                saveInstallations(installations);
-                updateStats();
-                renderTable();
-                closeEditModal();
-                showNotification('🗑️ Installation deleted', 'success');
-            }
-        }
-        
-        document.getElementById('editForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const installations = getInstallations();
-            const index = installations.findIndex(i => i.id === editingId);
-            
-            if (index !== -1) {
-                installations[index] = {
-                    ...installations[index],
-                    client: document.getElementById('editClient').value,
-                    details: document.getElementById('editDetails').value,
-                    location: document.getElementById('editLocation').value,
-                    requestedDate: document.getElementById('editRequestedDate').value,
-                    installationDate: document.getElementById('editInstallationDate').value,
-                    pic: document.getElementById('editPic').value,
-                    status: document.getElementById('editStatus').value
-                };
-                
-                saveInstallations(installations);
-                updateStats();
-                renderTable();
-                closeEditModal();
-                showNotification('✅ Installation updated successfully!', 'success');
-            }
-        });
-        
-        // Dropdown functions
-        function toggleDropdown() {
-            document.getElementById('exportDropdown').classList.toggle('show');
-        }
-        
-        window.onclick = function(event) {
-            if (!event.target.matches('.dropdown-btn')) {
-                const dropdowns = document.getElementsByClassName('dropdown-content');
-                for (let i = 0; i < dropdowns.length; i++) {
-                    const openDropdown = dropdowns[i];
-                    if (openDropdown.classList.contains('show')) {
-                        openDropdown.classList.remove('show');
-                    }
+                try {
+                    await db.collection('installations').doc(editingId).delete();
+                    updateStats();
+                    renderTable();
+                    closeEditModal();
+                    showNotification('🗑️ Installation deleted', 'success');
+                } catch (error) {
+                    console.error('Error deleting:', error);
+                    showNotification('❌ Error deleting installation', 'error');
                 }
             }
         }
         
-        function exportJSON() {
-            const installations = getInstallations();
-            if (installations.length === 0) {
-                alert('No data to export. Add some installations first.');
-                return;
+        document.getElementById('editForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            try {
+                await db.collection('installations').doc(editingId).update({
+                    client: document.getElementById('editClient').value,
+                    details: document.getElementById('editDetails').value,
+                    location: document.getElementById('editLocation').value,
+                    requestedDate: document.getElementById('editRequestedDate').value,
+                    installationDate: document.getElementById('editInstallationDate').value || null,
+                    pic: document.getElementById('editPic').value,
+                    status: document.getElementById('editStatus').value
+                });
+                
+                updateStats();
+                renderTable();
+                closeEditModal();
+                showNotification('✅ Installation updated successfully!', 'success');
+            } catch (error) {
+                console.error('Error updating:', error);
+                showNotification('❌ Error updating installation', 'error');
             }
-            
-            const data = {
-                version: '2.0',
-                exportDate: new Date().toISOString(),
-                totalRecords: installations.length,
-                installations: installations
-            };
-            
-            const jsonStr = JSON.stringify(data, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `installation_data_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            
-            showNotification('✅ JSON exported successfully!', 'success');
-            toggleDropdown();
-        }
+        });
         
         function exportCSV() {
-            const installations = getInstallations();
+            // Export only filtered data
+            const installations = currentFilteredData;
+            
             if (installations.length === 0) {
                 alert('No data to export');
                 return;
@@ -1121,8 +1054,8 @@
                     i.client, 
                     i.details, 
                     i.location,
-                    i.requestedDate || 'N/A',
-                    i.installationDate || i.date || 'N/A',
+                    formatDate(i.requestedDate),
+                    formatDate(i.installationDate),
                     i.pic || 'N/A', 
                     i.status
                 ])
@@ -1136,7 +1069,6 @@
             a.click();
             
             showNotification('✅ CSV exported successfully!', 'success');
-            toggleDropdown();
         }
         
         function importJSON(input) {
@@ -1144,7 +1076,7 @@
             if (!file) return;
             
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
                     
@@ -1156,7 +1088,7 @@
                     
                     document.getElementById('importCount').textContent = data.installations.length;
                     document.getElementById('importPreview').innerHTML = data.installations.slice(0, 5).map(inst => 
-                        `• ${inst.client} - ${inst.installationDate || inst.date} (${inst.status})`
+                        `• ${inst.client} - ${inst.installationDate || inst.date || 'N/A'} (${inst.status})`
                     ).join('<br>') + (data.installations.length > 5 ? '<br>... and ' + (data.installations.length - 5) + ' more' : '');
                     
                     document.getElementById('importModal').style.display = 'flex';
@@ -1170,30 +1102,57 @@
             reader.readAsText(file);
         }
         
-        function confirmImport() {
+        async function confirmImport() {
             if (!pendingImportData) return;
             
             const mode = document.querySelector('input[name="importMode"]:checked').value;
-            let installations = getInstallations();
-            const originalCount = installations.length;
             
-            if (mode === 'replace') {
-                installations = pendingImportData;
-            } else {
-                const existingIds = new Set(installations.map(i => i.id));
-                const newItems = pendingImportData.filter(i => !existingIds.has(i.id));
-                installations = [...installations, ...newItems];
+            try {
+                if (mode === 'replace') {
+                    // Delete all existing documents
+                    const snapshot = await db.collection('installations').get();
+                    const batch = db.batch();
+                    snapshot.docs.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                    await batch.commit();
+                    
+                    // Add new documents
+                    for (const item of pendingImportData) {
+                        const { id, ...data } = item;
+                        await db.collection('installations').add({
+                            ...data,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                } else {
+                    // Merge - add only new items (avoid duplicates by checking client + installationDate)
+                    const existing = await getInstallations();
+                    const existingKeys = new Set(existing.map(i => `${i.client}-${i.installationDate}`));
+                    
+                    for (const item of pendingImportData) {
+                        const key = `${item.client}-${item.installationDate}`;
+                        if (!existingKeys.has(key)) {
+                            const { id, ...data } = item;
+                            await db.collection('installations').add({
+                                ...data,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+                    }
+                }
+                
+                pendingImportData = null;
+                closeImportModal();
+                
+                updateStats();
+                renderTable();
+                
+                showNotification(`✅ Import complete! ${mode === 'replace' ? 'Data replaced' : 'Data merged'}.`, 'success');
+            } catch (error) {
+                console.error('Import error:', error);
+                showNotification('❌ Error during import', 'error');
             }
-            
-            saveInstallations(installations);
-            pendingImportData = null;
-            closeImportModal();
-            
-            updateStats();
-            renderTable();
-            
-            const addedCount = installations.length - originalCount;
-            showNotification(`✅ Import complete! ${mode === 'replace' ? 'Data replaced' : addedCount + ' new items added'}.`, 'success');
         }
         
         function cancelImport() {
@@ -1256,200 +1215,10 @@
         updateStats();
         renderTable();
         
-        // Refresh every 30 seconds
-        setInterval(() => {
+        // Real-time updates
+        db.collection('installations').onSnapshot(() => {
             updateStats();
             renderTable();
-        }, 30000);
-
- <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, deleteDoc, updateDoc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        // 🔥 REPLACE THIS WITH YOUR FIREBASE CONFIG FROM STEP 1
-        const firebaseConfig = {
-  apiKey: "AIzaSyDsW-6OfPDtbFal42zckbQVszcQm3QSXuY",
-  authDomain: "installationmanager-b5b26.firebaseapp.com",
-  projectId: "installationmanager-b5b26",
-  storageBucket: "installationmanager-b5b26.firebasestorage.app",
-  messagingSenderId: "692371087249",
-  appId: "1:692371087249:web:120507fc2ac50506f90430"
-};
-
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const installationsRef = collection(db, "installations");
-        
-        let allInstallations = [];
-        let editingId = null;
-
-        // Real-time listener
-        const q = query(installationsRef, orderBy("date", "asc"));
-        onSnapshot(q, (snapshot) => {
-            allInstallations = [];
-            snapshot.forEach((doc) => {
-                allInstallations.push({ id: doc.id, ...doc.data() });
-            });
-            updateStats();
-            renderTable();
-        });
-
-        function updateStats() {
-            document.getElementById('totalCount').textContent = allInstallations.length;
-            document.getElementById('pendingCount').textContent = allInstallations.filter(i => i.status === 'Pending').length;
-            document.getElementById('scheduledCount').textContent = allInstallations.filter(i => i.status === 'Scheduled').length;
-            document.getElementById('completedCount').textContent = allInstallations.filter(i => i.status === 'Completed').length;
-        }
-
-        function getDateClass(dateStr) {
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            const date = new Date(dateStr);
-            const diffTime = date - today;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (diffDays < 0) return 'date-overdue';
-            if (diffDays <= 3) return 'date-upcoming';
-            return 'date-future';
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function formatDate(dateStr) {
-            const options = { year: 'numeric', month: 'short', day: 'numeric' };
-            return new Date(dateStr).toLocaleDateString('en-US', options);
-        }
-
-        window.renderTable = function() {
-            let installations = [...allInstallations];
-            const filter = document.getElementById('filterStatus').value;
-            const search = document.getElementById('searchBox').value.toLowerCase();
-            
-            if (filter !== 'All') {
-                installations = installations.filter(i => i.status === filter);
-            }
-            
-            if (search) {
-                installations = installations.filter(i => 
-                    i.client.toLowerCase().includes(search) ||
-                    i.details.toLowerCase().includes(search) ||
-                    i.location.toLowerCase().includes(search)
-                );
-            }
-            
-            const tbody = document.getElementById('tableBody');
-            
-            if (installations.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="empty-state">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                            </svg>
-                            <h3>No Installations Found</h3>
-                            <p>${filter !== 'All' || search ? 'Try adjusting your filters.' : 'Start by adding your first installation.'}</p>
-                            ${!search && filter === 'All' ? '<a href="add.html" class="btn btn-primary">Add Installation</a>' : ''}
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            tbody.innerHTML = installations.map(inst => `
-                <tr>
-                    <td class="client-cell">${escapeHtml(inst.client)}</td>
-                    <td class="details-cell">${escapeHtml(inst.details)}</td>
-                    <td class="location-cell">${escapeHtml(inst.location)}</td>
-                    <td class="date-cell ${getDateClass(inst.date)}">${formatDate(inst.date)}</td>
-                    <td><span class="status-badge status-${inst.status.toLowerCase()}">${inst.status}</span></td>
-                    <td class="actions">
-                        <button class="btn btn-success" onclick="editInstallation('${inst.id}')">Edit</button>
-                        <button class="btn btn-danger" onclick="deleteInstallation('${inst.id}')">Delete</button>
-                    </td>
-                </tr>
-            `).join('');
-        };
-
-        window.editInstallation = function(id) {
-            const inst = allInstallations.find(i => i.id === id);
-            if (!inst) return;
-            
-            editingId = id;
-            document.getElementById('editId').value = id;
-            document.getElementById('editClient').value = inst.client;
-            document.getElementById('editDetails').value = inst.details;
-            document.getElementById('editLocation').value = inst.location;
-            document.getElementById('editDate').value = inst.date;
-            document.getElementById('editStatus').value = inst.status;
-            
-            document.getElementById('editModal').style.display = 'flex';
-        };
-
-        window.closeModal = function() {
-            document.getElementById('editModal').style.display = 'none';
-            editingId = null;
-        };
-
-        document.getElementById('editForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const docRef = doc(db, "installations", editingId);
-            await updateDoc(docRef, {
-                client: document.getElementById('editClient').value,
-                details: document.getElementById('editDetails').value,
-                location: document.getElementById('editLocation').value,
-                date: document.getElementById('editDate').value,
-                status: document.getElementById('editStatus').value,
-                updatedAt: new Date().toISOString()
-            });
-            
-            closeModal();
-        });
-
-        window.deleteInstallation = async function(id) {
-            if (confirm('Are you sure you want to delete this installation?')) {
-                await deleteDoc(doc(db, "installations", id));
-            }
-        };
-
-        window.clearAll = async function() {
-            if (confirm('WARNING: This will delete ALL installations. Are you sure?')) {
-                const batch = writeBatch(db);
-                allInstallations.forEach((inst) => {
-                    batch.delete(doc(db, "installations", inst.id));
-                });
-                await batch.commit();
-            }
-        };
-
-        window.exportCSV = function() {
-            if (allInstallations.length === 0) {
-                alert('No data to export');
-                return;
-            }
-            
-            const csv = [
-                ['Client', 'Details', 'Location', 'Date', 'Status'],
-                ...allInstallations.map(i => [i.client, i.details, i.location, i.date, i.status])
-            ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-            
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `installations_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-        };
-
-        document.getElementById('editModal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
         });
     </script>
 </body>
