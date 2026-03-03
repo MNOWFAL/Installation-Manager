@@ -912,16 +912,45 @@
             return `${day} ${month} ${year}`;
         }
         
-        // Parse date from "dd Mmm yyyy" format back to ISO format (yyyy-mm-dd)
-        function parseDate(dateStr) {
-            if (!dateStr || dateStr === 'N/A') return null;
+        // Convert Excel serial date to JavaScript Date
+        // Excel dates are stored as number of days since 1900-01-01 (with 1900 leap year bug)
+        function excelSerialToDate(serial) {
+            if (typeof serial !== 'number' || isNaN(serial)) {
+                return null;
+            }
             
-            // If already in ISO format (yyyy-mm-dd), return as is
+            // Excel's epoch is 1900-01-01, but it incorrectly treats 1900 as a leap year
+            // So we add the serial number of days to 1899-12-30 to get correct date
+            const excelEpoch = new Date(1899, 11, 30); // December 30, 1899
+            const days = Math.floor(serial);
+            const milliseconds = days * 24 * 60 * 60 * 1000;
+            const date = new Date(excelEpoch.getTime() + milliseconds);
+            
+            return date;
+        }
+        
+        // Parse date from various formats to ISO format (yyyy-mm-dd)
+        function parseDate(dateValue) {
+            if (!dateValue || dateValue === 'N/A' || dateValue === '') return null;
+            
+            // If it's a number (Excel serial date)
+            if (typeof dateValue === 'number') {
+                const date = excelSerialToDate(dateValue);
+                if (date && !isNaN(date.getTime())) {
+                    return date.toISOString().split('T')[0];
+                }
+                return null;
+            }
+            
+            // If it's already a string
+            const dateStr = String(dateValue).trim();
+            
+            // Already in ISO format (yyyy-mm-dd)
             if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
                 return dateStr;
             }
             
-            // Parse "dd Mmm yyyy" format
+            // Parse "dd Mmm yyyy" format (e.g., "03 Mar 2026")
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const parts = dateStr.split(' ');
             if (parts.length === 3) {
@@ -1155,8 +1184,8 @@
                         client: row.Client || row.client || '',
                         details: row.Details || row.details || '',
                         location: row.Location || row.location || '',
-                        requestedDate: parseDate(row['Requested Date'] || row.requestedDate || ''),  // Parse "03 Mar 2026" to ISO
-                        installationDate: parseDate(row['Installation Date'] || row.installationDate || row.date || ''),  // Parse "03 Mar 2026" to ISO
+                        requestedDate: parseDate(row['Requested Date'] || row.requestedDate),  // Parse Excel date
+                        installationDate: parseDate(row['Installation Date'] || row.installationDate || row.date),  // Parse Excel date
                         pic: row.PIC || row.pic || '',
                         status: row.Status || row.status || 'Pending'
                     })).filter(row => row.client); // Filter out empty rows
@@ -1175,6 +1204,7 @@
                     document.getElementById('importModal').style.display = 'flex';
                     
                 } catch (error) {
+                    console.error('Import error:', error);
                     alert('Error reading Excel file: ' + error.message);
                 }
                 
