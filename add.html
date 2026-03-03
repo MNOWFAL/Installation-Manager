@@ -37,6 +37,19 @@
             position: relative;
         }
         
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            height: 50px;
+            width: auto;
+            object-fit: contain;
+        }
+        
         h1 {
             color: white;
             font-size: 2rem;
@@ -282,12 +295,16 @@
                 justify-content: center;
             }
             
-            .form-container {
-                padding: 25px;
+            .logo {
+                height: 40px;
             }
             
             h1 {
                 font-size: 1.5rem;
+            }
+            
+            .form-container {
+                padding: 25px;
             }
         }
     </style>
@@ -295,17 +312,20 @@
 <body>
     <div class="container">
         <div class="nav-bar">
-            <h1>DS Installation Manager</h1>
+            <div class="logo-container">
+                <img src="logo.png" alt="DS Installation Manager Logo" class="logo" onerror="this.style.display='none'">
+                <h1>DS Installation Manager</h1>
+            </div>
             <div class="nav-links">
                 <a href="add.html" class="nav-link active">Add New</a>
-                <a href="index.html" class="nav-link">View All</a>
+                <a href="view.html" class="nav-link">View All</a>
             </div>
         </div>
         
         <div class="form-container">
             <div class="success-message" id="successMessage">
                 ✅ Installation added successfully! 
-                <a href="index.html" style="color: #155724; text-decoration: underline; font-weight: 600;">View all installations</a>
+                <a href="view.html" style="color: #155724; text-decoration: underline; font-weight: 600;">View all installations</a>
             </div>
             
             <div class="error-message" id="errorMessage">
@@ -387,6 +407,20 @@
         // Set today's date as default for requested date
         document.getElementById('requestedDate').valueAsDate = new Date();
 
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            // Handle Firestore timestamp
+            if (dateStr.toDate) {
+                dateStr = dateStr.toDate();
+            }
+            const date = new Date(dateStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = monthNames[date.getMonth()];
+            const year = date.getFullYear();
+            return `${day} ${month} ${year}`;
+        }
+
         async function loadRecentEntries() {
             try {
                 const snapshot = await db.collection('installations')
@@ -427,12 +461,6 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
-        }
-
-        function formatDate(dateStr) {
-            if (!dateStr) return 'N/A';
-            const options = { year: 'numeric', month: 'short', day: 'numeric' };
-            return new Date(dateStr).toLocaleDateString('en-US', options);
         }
 
         document.getElementById('installationForm').addEventListener('submit', async function(e) {
