@@ -37,19 +37,6 @@
             position: relative;
         }
         
-        .logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-        }
-        
-        .logo {
-            height: 50px;
-            width: auto;
-            object-fit: contain;
-        }
-        
         h1 {
             color: white;
             font-size: 2rem;
@@ -324,22 +311,6 @@
             font-size: 0.85rem;
         }
         
-        /* Installation date colors based on status */
-        .date-scheduled {
-            color: #4CAF50;
-            font-weight: 700;
-        }
-        
-        .date-completed {
-            color: #333333;
-            font-weight: 600;
-        }
-        
-        .date-pending {
-            color: #ff9800;
-            font-weight: 600;
-        }
-        
         .pic-cell {
             color: #555;
             font-size: 0.85rem;
@@ -372,13 +343,6 @@
         .actions {
             display: flex;
             gap: 8px;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-        }
-        
-        .actions-cell {
-            vertical-align: middle;
         }
         
         .date-overdue {
@@ -575,10 +539,6 @@
                 position: static;
             }
             
-            .logo {
-                height: 40px;
-            }
-            
             h1 {
                 font-size: 1.5rem;
             }
@@ -659,10 +619,7 @@
 <body>
     <div class="container">
         <div class="nav-bar">
-            <div class="logo-container">
-                <img src="logo.png" alt="DS Installation Manager Logo" class="logo" onerror="this.style.display='none'">
-                <h1>DS Installation Manager</h1>
-            </div>
+            <h1>DS Installation Manager</h1>
             <div class="nav-links">
                 <a href="add.html" class="nav-link">Add New</a>
             </div>
@@ -701,8 +658,8 @@
             
             <div class="action-buttons">
                 <div class="file-input-wrapper">
-                    <input type="file" id="importFile" accept=".xlsx,.xls,.csv" onchange="importExcel(this)">
-                    <label for="importFile" class="file-input-label">📥 Import Excel</label>
+                    <input type="file" id="importFile" accept=".json" onchange="importJSON(this)">
+                    <label for="importFile" class="file-input-label">📥 Import</label>
                 </div>
                 
                 <button class="btn btn-success" onclick="exportCSV()">📤 Export CSV</button>
@@ -822,9 +779,6 @@
         </div>
     </div>
 
-    <!-- SheetJS Library for Excel support -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
     <script>
         // Firebase Configuration
         const firebaseConfig = {
@@ -868,15 +822,8 @@
             document.getElementById('completedCount').textContent = installations.filter(i => i.status === 'Completed').length;
         }
         
-        function getDateClass(dateStr, status) {
+        function getDateClass(dateStr) {
             if (!dateStr) return '';
-            
-            // Priority: status-based coloring
-            if (status === 'Scheduled') return 'date-scheduled';
-            if (status === 'Completed') return 'date-completed';
-            if (status === 'Pending') return 'date-pending';
-            
-            // Fallback to date-based coloring
             const today = new Date();
             today.setHours(0,0,0,0);
             const date = new Date(dateStr);
@@ -901,12 +848,8 @@
             if (dateStr.toDate) {
                 dateStr = dateStr.toDate();
             }
-            const date = new Date(dateStr);
-            const day = String(date.getDate()).padStart(2, '0');
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const month = monthNames[date.getMonth()];
-            const year = date.getFullYear();
-            return `${day} ${month} ${year}`;
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateStr).toLocaleDateString('en-US', options);
         }
         
         function formatDateForInput(dateStr) {
@@ -989,13 +932,11 @@
                     <td class="details-cell">${escapeHtml(inst.details)}</td>
                     <td class="location-cell">${escapeHtml(inst.location)}</td>
                     <td class="date-cell">${formatDate(inst.requestedDate)}</td>
-                    <td class="date-cell ${getDateClass(inst.installationDate, inst.status)}">${formatDate(inst.installationDate)}</td>
+                    <td class="date-cell ${getDateClass(inst.installationDate)}">${formatDate(inst.installationDate)}</td>
                     <td class="pic-cell">${escapeHtml(inst.pic || 'N/A')}</td>
                     <td><span class="status-badge status-${inst.status.toLowerCase()}">${inst.status}</span></td>
-                    <td class="actions-cell">
-                        <div class="actions">
-                            <button class="btn btn-success" onclick="editInstallation('${inst.id}')" style="padding: 6px 14px; font-size: 0.8rem;">Edit</button>
-                        </div>
+                    <td class="actions">
+                        <button class="btn btn-success" onclick="editInstallation('${inst.id}')" style="padding: 6px 14px; font-size: 0.8rem;">Edit</button>
                     </td>
                 </tr>
             `).join('');
@@ -1097,54 +1038,35 @@
             showNotification('✅ CSV exported successfully!', 'success');
         }
         
-        function importExcel(input) {
+        function importJSON(input) {
             const file = input.files[0];
             if (!file) return;
             
             const reader = new FileReader();
             reader.onload = async function(e) {
                 try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    const data = JSON.parse(e.target.result);
                     
-                    if (!jsonData || jsonData.length === 0) {
-                        throw new Error('No data found in Excel file');
+                    if (!data.installations || !Array.isArray(data.installations)) {
+                        throw new Error('Invalid file format');
                     }
                     
-                    // Map Excel columns to expected format
-                    const mappedData = jsonData.map(row => ({
-                        client: row.Client || row.client || '',
-                        details: row.Details || row.details || '',
-                        location: row.Location || row.location || '',
-                        requestedDate: row['Requested Date'] || row.requestedDate || '',
-                        installationDate: row['Installation Date'] || row.installationDate || row.date || '',
-                        pic: row.PIC || row.pic || '',
-                        status: row.Status || row.status || 'Pending'
-                    })).filter(row => row.client); // Filter out empty rows
+                    pendingImportData = data.installations;
                     
-                    if (mappedData.length === 0) {
-                        throw new Error('No valid data found in Excel file');
-                    }
-                    
-                    pendingImportData = mappedData;
-                    
-                    document.getElementById('importCount').textContent = mappedData.length;
-                    document.getElementById('importPreview').innerHTML = mappedData.slice(0, 5).map(inst => 
-                        `• ${inst.client} - ${inst.installationDate || 'N/A'} (${inst.status})`
-                    ).join('<br>') + (mappedData.length > 5 ? '<br>... and ' + (mappedData.length - 5) + ' more' : '');
+                    document.getElementById('importCount').textContent = data.installations.length;
+                    document.getElementById('importPreview').innerHTML = data.installations.slice(0, 5).map(inst => 
+                        `• ${inst.client} - ${inst.installationDate || inst.date || 'N/A'} (${inst.status})`
+                    ).join('<br>') + (data.installations.length > 5 ? '<br>... and ' + (data.installations.length - 5) + ' more' : '');
                     
                     document.getElementById('importModal').style.display = 'flex';
                     
                 } catch (error) {
-                    alert('Error reading Excel file: ' + error.message);
+                    alert('Error reading file: ' + error.message);
                 }
                 
                 input.value = '';
             };
-            reader.readAsArrayBuffer(file);
+            reader.readAsText(file);
         }
         
         async function confirmImport() {
@@ -1164,18 +1086,26 @@
                     
                     // Add new documents
                     for (const item of pendingImportData) {
+                        const { id, ...data } = item;
                         await db.collection('installations').add({
-                            ...item,
+                            ...data,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp()
                         });
                     }
                 } else {
-                    // Merge - add all items (allow duplicates as they are not unique)
+                    // Merge - add only new items (avoid duplicates by checking client + installationDate)
+                    const existing = await getInstallations();
+                    const existingKeys = new Set(existing.map(i => `${i.client}-${i.installationDate}`));
+                    
                     for (const item of pendingImportData) {
-                        await db.collection('installations').add({
-                            ...item,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
+                        const key = `${item.client}-${item.installationDate}`;
+                        if (!existingKeys.has(key)) {
+                            const { id, ...data } = item;
+                            await db.collection('installations').add({
+                                ...data,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
                     }
                 }
                 
