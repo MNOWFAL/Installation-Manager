@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Installations - DS Installation Manager</title>
+    <title>DS Installation Manager</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -660,7 +661,6 @@
     <div class="container">
         <div class="nav-bar">
             <div class="logo-container">
-                <img src="logo.png" alt="DS Installation Manager Logo" class="logo" onerror="this.style.display='none'">
                 <h1>DS Installation Manager</h1>
             </div>
             <div class="nav-links">
@@ -702,10 +702,10 @@
             <div class="action-buttons">
                 <div class="file-input-wrapper">
                     <input type="file" id="importFile" accept=".xlsx,.xls,.csv" onchange="importExcel(this)">
-                    <label for="importFile" class="file-input-label">📥 Import Excel</label>
+                    <label for="importFile" class="file-input-label">📥 Import</label>
                 </div>
                 
-                <button class="btn btn-success" onclick="exportCSV()">📤 Export CSV</button>
+                <button class="btn btn-success" onclick="exportCSV()">📤 Export</button>
             </div>
         </div>
         
@@ -1326,3 +1326,4 @@
     </script>
 </body>
 </html>
+
