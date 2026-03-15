@@ -313,7 +313,7 @@
         }
         
         .details-cell {
-            max-width: 200px;
+            max-width: 350px;
             line-height: 1.4;
         }
         
@@ -1030,18 +1030,31 @@
                 }
                 
                 if (status === 'Pending') {
-                    // If installation date exists, sort by it (nearest first)
-                    // Otherwise, sort by requested date (nearest first)
-                    const dateA = a.installationDate ? new Date(a.installationDate) : 
-                                  (a.requestedDate ? new Date(a.requestedDate) : null);
-                    const dateB = b.installationDate ? new Date(b.installationDate) : 
-                                  (b.requestedDate ? new Date(b.requestedDate) : null);
+                    // Items with installation date go to top, sorted by installation date (nearest first)
+                    // Items without installation date go below, sorted by requested date (nearest first)
+                    const hasInstallDateA = !!a.installationDate;
+                    const hasInstallDateB = !!b.installationDate;
                     
-                    if (!dateA && !dateB) return 0;
-                    if (!dateA) return 1;  // Null dates at end
-                    if (!dateB) return -1;
+                    // If one has installation date and other doesn't, prioritize the one with installation date
+                    if (hasInstallDateA && !hasInstallDateB) return -1;
+                    if (!hasInstallDateA && hasInstallDateB) return 1;
                     
-                    return dateA - dateB; // Nearest first
+                    // Both have installation dates - sort by installation date (nearest first)
+                    if (hasInstallDateA && hasInstallDateB) {
+                        const dateA = new Date(a.installationDate);
+                        const dateB = new Date(b.installationDate);
+                        return dateA - dateB;
+                    }
+                    
+                    // Both don't have installation dates - sort by requested date (nearest first)
+                    const reqDateA = a.requestedDate ? new Date(a.requestedDate) : null;
+                    const reqDateB = b.requestedDate ? new Date(b.requestedDate) : null;
+                    
+                    if (!reqDateA && !reqDateB) return 0;
+                    if (!reqDateA) return 1;
+                    if (!reqDateB) return -1;
+                    
+                    return reqDateA - reqDateB;
                 }
                 
                 if (status === 'Completed') {
