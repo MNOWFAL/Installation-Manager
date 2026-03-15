@@ -985,94 +985,121 @@
             return date.toISOString().split('T')[0];
         }
         
-    async function renderTable() {
-    let installations = await getInstallations();
-    const filter = document.getElementById('filterStatus').value;
-    const search = document.getElementById('searchBox').value.toLowerCase();
-    
-    // Apply filters first
-    if (filter !== 'All') {
-        installations = installations.filter(i => i.status === filter);
-    }
-    
-    if (search) {
-        installations = installations.filter(i => 
-            i.client.toLowerCase().includes(search) ||
-            (i.pic && i.pic.toLowerCase().includes(search)) ||
-            i.details.toLowerCase().includes(search) ||
-            i.location.toLowerCase().includes(search)
-        );
-    }
-    
-    // Sort by status priority first, then by installation date
-    installations.sort((a, b) => {
-        // First sort by status priority
-        const priorityA = statusPriority[a.status] || 4;
-        const priorityB = statusPriority[b.status] || 4;
-        
-        if (priorityA !== priorityB) {
-            return priorityA - priorityB;
+        async function renderTable() {
+            let installations = await getInstallations();
+            const filter = document.getElementById('filterStatus').value;
+            const search = document.getElementById('searchBox').value.toLowerCase();
+            
+            // Apply filters first
+            if (filter !== 'All') {
+                installations = installations.filter(i => i.status === filter);
+            }
+            
+            if (search) {
+                installations = installations.filter(i => 
+                    i.client.toLowerCase().includes(search) ||
+                    (i.pic && i.pic.toLowerCase().includes(search)) ||
+                    i.details.toLowerCase().includes(search) ||
+                    i.location.toLowerCase().includes(search)
+                );
+            }
+            
+            // Sort by status priority first, then by date logic
+            // Priority: Scheduled (1), Pending (2), Completed (3)
+            installations.sort((a, b) => {
+                const priorityA = statusPriority[a.status] || 4;
+                const priorityB = statusPriority[b.status] || 4;
+                
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB;
+                }
+                
+                // Same status - apply specific sorting rules
+                const status = a.status; // Both have same status
+                
+                if (status === 'Scheduled') {
+                    // Sort by installation date (nearest first - ascending)
+                    const dateA = a.installationDate ? new Date(a.installationDate) : null;
+                    const dateB = b.installationDate ? new Date(b.installationDate) : null;
+                    
+                    if (!dateA && !dateB) return 0;
+                    if (!dateA) return 1;  // Null dates at end
+                    if (!dateB) return -1;
+                    
+                    return dateA - dateB; // Nearest first
+                }
+                
+                if (status === 'Pending') {
+                    // If installation date exists, sort by it (nearest first)
+                    // Otherwise, sort by requested date (nearest first)
+                    const dateA = a.installationDate ? new Date(a.installationDate) : 
+                                  (a.requestedDate ? new Date(a.requestedDate) : null);
+                    const dateB = b.installationDate ? new Date(b.installationDate) : 
+                                  (b.requestedDate ? new Date(b.requestedDate) : null);
+                    
+                    if (!dateA && !dateB) return 0;
+                    if (!dateA) return 1;  // Null dates at end
+                    if (!dateB) return -1;
+                    
+                    return dateA - dateB; // Nearest first
+                }
+                
+                if (status === 'Completed') {
+                    // Sort by installation date (recent first - descending)
+                    const dateA = a.installationDate ? new Date(a.installationDate) : null;
+                    const dateB = b.installationDate ? new Date(b.installationDate) : null;
+                    
+                    if (!dateA && !dateB) return 0;
+                    if (!dateA) return 1;  // Null dates at end
+                    if (!dateB) return -1;
+                    
+                    return dateB - dateA; // Recent first
+                }
+                
+                return 0;
+            });
+            
+            // Store filtered data for export
+            currentFilteredData = [...installations];
+            
+            // Update info bar
+            document.getElementById('showingCount').textContent = installations.length;
+            
+            const tbody = document.getElementById('tableBody');
+            
+            if (installations.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            <h3>No Installations Found</h3>
+                            <p>${filter !== 'All' || search ? 'Try adjusting your filters.' : 'Start by adding your first installation.'}</p>
+                            ${!search && filter === 'All' ? '<a href="add.html" class="btn btn-primary">Add Installation</a>' : ''}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = installations.map(inst => `
+                <tr>
+                    <td class="client-cell">${escapeHtml(inst.client)}</td>
+                    <td class="details-cell">${escapeHtml(inst.details)}</td>
+                    <td class="location-cell">${escapeHtml(inst.location)}</td>
+                    <td class="date-cell">${formatDate(inst.requestedDate)}</td>
+                    <td class="date-cell ${getDateClass(inst.installationDate, inst.status)}">${formatDate(inst.installationDate)}</td>
+                    <td class="pic-cell">${escapeHtml(inst.pic || 'N/A')}</td>
+                    <td><span class="status-badge status-${inst.status.toLowerCase()}">${inst.status}</span></td>
+                    <td class="actions-cell">
+                        <div class="actions">
+                            <button class="btn btn-success" onclick="editInstallation('${inst.id}')" style="padding: 6px 14px; font-size: 0.8rem;">Edit</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
         }
-        
-        // Same status - sort by installation date
-        const dateA = a.installationDate ? new Date(a.installationDate) : null;
-        const dateB = b.installationDate ? new Date(b.installationDate) : null;
-        
-        // Handle null dates - put them at the end
-        if (!dateA && !dateB) return 0;
-        if (!dateA) return 1;
-        if (!dateB) return -1;
-        
-        // For Completed status: recent first (descending)
-        if (a.status === 'Completed') {
-            return dateB - dateA; // Recent first
-        }
-        
-        // For Scheduled and Pending: nearest future date first (ascending)
-        return dateA - dateB; // Nearest first
-    });
-    
-    // Store filtered data for export
-    currentFilteredData = [...installations];
-    
-    // Update info bar
-    document.getElementById('showingCount').textContent = installations.length;
-    
-    const tbody = document.getElementById('tableBody');
-    
-    if (installations.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="empty-state">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                    <h3>No Installations Found</h3>
-                    <p>${filter !== 'All' || search ? 'Try adjusting your filters.' : 'Start by adding your first installation.'}</p>
-                    ${!search && filter === 'All' ? '<a href="add.html" class="btn btn-primary">Add Installation</a>' : ''}
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    tbody.innerHTML = installations.map(inst => `
-        <tr>
-            <td class="client-cell">${escapeHtml(inst.client)}</td>
-            <td class="details-cell">${escapeHtml(inst.details)}</td>
-            <td class="location-cell">${escapeHtml(inst.location)}</td>
-            <td class="date-cell">${formatDate(inst.requestedDate)}</td>
-            <td class="date-cell ${getDateClass(inst.installationDate, inst.status)}">${formatDate(inst.installationDate)}</td>
-            <td class="pic-cell">${escapeHtml(inst.pic || 'N/A')}</td>
-            <td><span class="status-badge status-${inst.status.toLowerCase()}">${inst.status}</span></td>
-            <td class="actions-cell">
-                <div class="actions">
-                    <button class="btn btn-success" onclick="editInstallation('${inst.id}')" style="padding: 6px 14px; font-size: 0.8rem;">Edit</button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
-}
         
         async function editInstallation(id) {
             const doc = await db.collection('installations').doc(id).get();
@@ -1335,8 +1362,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
